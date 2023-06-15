@@ -41,3 +41,8 @@ export class MemberDTO {
     @MinLength(6)
     password: string;
 }
+
+export class EditMemberDTO {
+    editKey: string;
+    editValue: string;
+}
