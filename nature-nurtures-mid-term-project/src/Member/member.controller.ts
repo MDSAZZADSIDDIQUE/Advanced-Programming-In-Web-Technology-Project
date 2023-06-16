@@ -53,4 +53,17 @@ export class MemberController {
     cancelOrder(@Param('orderID') orderID:string, @Body() orders:object): string {
         return this.memberService.cancelOrder(orderID, orders);
     }
+    @Get('/searchorder/:orderID')
+    searchOrder(@Param('orderID') orderID:string, @Body() orders:object): string {
+        return this.memberService.searchOrder(orderID, orders);
+    }
+    @Get('/searchplantfertilizer/:plantName')
+    searchPlantFertilizer(@Param('plantName') plantName:string, @Body() listOfPlantsAndTheirRequiredFertilizers:object): string {
+        return this.memberService.searchPlantFertilizer(plantName, listOfPlantsAndTheirRequiredFertilizers);
+    }
+    @Get('/notificationforwater')
+    getNotificationForWater(): string {
+        return this.memberService.getNotificationForWater();
+    }
+    
 }

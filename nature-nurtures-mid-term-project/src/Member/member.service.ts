@@ -83,5 +83,79 @@ export class MemberService{
         }
         return seeOrders;
     }
-    
+
+    searchOrder(orderID: string, orders: object) {
+        for (const key in orders) {
+            if (key == orderID) {
+                return (`
+                --------------------------------------------------
+                Order ID: ${key}
+                Product ID: ${orders[key].productID}
+                Product Name: ${orders[key].productName}
+                Quantity: ${orders[key].quantity}
+                Price: ${orders[key].price}
+                Shipping Address: ${orders[key].shippingAddress}
+                --------------------------------------------------
+                `);
+            }
+        }
+    }
+    searchPlantFertilizer(plantName: string, listOfPlantsAndTheirRequiredFertilizers: object) {
+        for (const key in listOfPlantsAndTheirRequiredFertilizers) {
+            if (key == plantName) {
+                return (`
+                --------------------------------------------------
+                Plant Name: ${key}
+                Plant Name: ${listOfPlantsAndTheirRequiredFertilizers[key]}
+                --------------------------------------------------
+                Here are some additional tips for fertilizing your plants:
+                ⭐ Apply fertilizer when the soil is moist.
+                ⭐ Do not over-fertilize, as this can damage the plants.
+                ⭐ Water the plants thoroughly after fertilizing.
+                ⭐ Fertilize regularly, according to the instructions on the fertilizer label.
+                --------------------------------------------------
+                `);
+            }
+        }
+    }
+    getNotificationForWater(): string {
+        const now = new Date();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
+        const second = now.getSeconds();
+        if (hour == 9) {
+            return (`
+            -------------------
+            🌄 GOOD MORNING 🌄
+            -------------------
+            Time: ${hour}:${minute}:${second}
+            -------------------
+            🌱 It's time to 
+            water your plants 🌱
+            -------------------
+            `)
+        } else if (hour >= 12 && hour < 18) {
+            return (`
+            --------------------
+            ☀️ GOOD AFTERNOON ☀️
+            -------------------
+            Time: ${hour}:${minute}:${second}
+            --------------------
+            😇 Don't forget to
+            drink water 😇
+            --------------------
+            `)
+        } else {
+            return (`
+            -----------------
+            🌙 GOOD NIGHT 🌙
+            -------------------
+            Time: ${hour}:${minute}:${second}
+            -----------------
+            😇 Early to bed,
+            Early to rise 😇
+            -----------------
+            `)
+        }
+    }
 }
