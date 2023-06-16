@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UploadedFile, UsePipes, UseInterceptors, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query, UploadedFile, UsePipes, UseInterceptors, ValidationPipe, Res, Delete } from "@nestjs/common";
 import { MemberService } from "./member.service";
 import { EditMemberDTO, MemberDTO } from "./member.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { MulterError, diskStorage } from "multer";
+import { orderDTO } from "./order.dto";
 
 @Controller('member')
 export class MemberController {
@@ -16,7 +17,7 @@ export class MemberController {
     editProfileDetails(@Query() query:EditMemberDTO, @Body() profileDetails: MemberDTO): string {
         return this.memberService.editProfileDetails(query, profileDetails);
     }
-    @Post('/uploadprofilepicture')
+    @Post('/selectprofilepicture')
     @UseInterceptors(FileInterceptor('profilePicture',
     { fileFilter(req, file, callback) {
         if (file.originalname.match(/^.*\.(jpg|webp|png|jpeg)$/)) {
@@ -33,11 +34,23 @@ export class MemberController {
         },
     })
     }))
-    uploadProfilePicture(@UploadedFile() profilePicture: Express.Multer.File): string {
+    selectProfilePicture(@UploadedFile() profilePicture: Express.Multer.File): string {
         return (`
         Name: ${profilePicture.filename}
         Size: ${profilePicture.size}
         Profile Picture Uploaded.
         `);
+    }
+    @Get('/seeprofilepicture/:profilePictureName')
+    seeProfilePicture(@Param('profilePictureName') profilePictureName, @Res() response) {
+        response.sendFile(profilePictureName, { root: './profile_pictures' });
+    }
+    @Post('/addorder')
+    addOrder(@Query() query:orderDTO, @Body() orders: object): string {
+        return this.memberService.addOrder(query, orders);
+    }
+    @Delete('/cancelorder/:orderID')
+    cancelOrder(@Param('orderID') orderID:string, @Body() orders:object): string {
+        return this.memberService.cancelOrder(orderID, orders);
     }
 }
