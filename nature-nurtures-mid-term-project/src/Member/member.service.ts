@@ -1,15 +1,21 @@
 import { HttpStatus, Injectable, NotFoundException, Session, UnauthorizedException } from "@nestjs/common";
-import { EditMemberDTO, MemberDTO, userDTO } from "./member.dto";
+import { EditMemberDTO} from "./member.dto";
 import { orderDTO } from "./order.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { MemberEntity } from "./member.entity";
 import { Repository } from "typeorm";
-import * as bcrypt from 'bcrypt';
-import { promises } from "dns";
-import { editProductDTO, productDTO } from "./product.dto";
-import { ProductEntity } from "./product.entity";
 import { OrderEntity } from "./order.entity";
 import { confirmOrderDTO, paymentInformationDTO } from "./payment.dto";
+import { ProductEntity } from "src/Seller/product.entity";
+import { AddToCartDTO } from "src/Seller/product.dto";
+import { SellerEntity } from "src/Seller/seller.entity";
+import { SellerDTO } from "src/Seller/seller.dto";
+import { RatingEntity } from "./rating.entity";
+import { RatingDTO } from "./rating.dto";
+import { ReviewEntity } from "./review.entity";
+import { ReviewDTO } from "./review.dto";
+import { PlantDTO } from "./plant.dto";
+import { PlantEntity } from "./plant.entity";
 
 @Injectable()
 export class MemberService{
@@ -19,41 +25,20 @@ export class MemberService{
         @InjectRepository(ProductEntity)
         private productRepository: Repository<ProductEntity>,
         @InjectRepository(OrderEntity)
-        private orderRepository: Repository<OrderEntity>
+        private orderRepository: Repository<OrderEntity>,
+        @InjectRepository(SellerEntity)
+        private sellerRepository: Repository<SellerEntity>,
+        @InjectRepository(RatingEntity)
+        private ratingRepository: Repository<RatingEntity>,
+        @InjectRepository(ReviewEntity)
+        private reviewRepository: Repository<ReviewEntity>,
+        @InjectRepository(PlantEntity)
+        private plantRepository: Repository<PlantEntity>,
     ) {}
-
-    // Registration
-    async registerMember(member: MemberDTO): Promise<MemberEntity> {
-        const salt = await bcrypt.genSalt();
-        member.password = await bcrypt.hash(member.password, salt);
-        return await this.memberRepository.save(member);
-    }
-
-    // Log in
-    async login(query:userDTO)
-    {
-        const email = query.email;
-        const password = query.password;
-        const memberDetails = await this.memberRepository.findOneBy({ email : email });        
-        if (memberDetails === null) {
-            throw new NotFoundException({
-                status: HttpStatus.NOT_FOUND,
-                message: "Member not found"
-            })
-        } else {
-            if (await bcrypt.compare(password, memberDetails.password)) {
-                return memberDetails;
-            } else {
-                throw new UnauthorizedException({
-                    status: HttpStatus.UNAUTHORIZED,
-                    message: "Password does not match"
-                })
-            }
-        }
-    }
 
     // Show Profile Details
     async showProfileDetails(memberID) {
+        console.log(memberID);
         return await this.memberRepository.findOneBy({ memberID : memberID });
     }
 
@@ -81,37 +66,14 @@ export class MemberService{
         return ("Update Successful");
     }
 
-    // Add Product
-    async addProduct(product: productDTO): Promise<ProductEntity> {
-        return this.productRepository.save(product);
-    }
-
     // Shop
     async shop() {
-        const products = await this.productRepository.find();
-        let shop = "";
-        for (const key in products) {
-            shop += (`
-            --------------------------------------------------
-            Product ID: ${products[key].productID}
-            Name: ${products[key].productName}
-            Price: ${products[key].price}
-            Description: ${products[key].description}
-            Category: ${products[key].category}
-            Tags: ${products[key].tags}
-            Availability: ${products[key].availabilty}
-            Rating: ${products[key].rating}
-            Reviews: ${products[key].reviews}
-            Supplier: ${products[key].supplier}
-            --------------------------------------------------
-            `);
-        }
-        return shop;
+        return await this.productRepository.find();
     }
 
-    async addToCart(customerID, query: editProductDTO, order: orderDTO) {
-        const editProduct = query.editProduct;
-        const product = await this.productRepository.findOneBy({ productID: editProduct });
+    async addToCart(customerID, query: AddToCartDTO, order: orderDTO) {
+        const productID = query.productID;
+        const product = await this.productRepository.findOneBy({ productID: productID });
         const member = await this.memberRepository.findOneBy(customerID);
         order.customerID = customerID;
         const now = new Date();
@@ -120,52 +82,41 @@ export class MemberService{
         const year = now.getFullYear();
         order.orderDate = `${date}/${month}/${year}`;
         order.orderStatus = "Pending";
-        order.products = product.productName;
         order.totalAmount = product.price;
         order.shippingAddress = member.address;
+        order.products = [];
+        order.products.push(product.productName);
         return this.orderRepository.save(order);
     }
 
     async cart(memberID) {
-        const orders = await this.orderRepository.find();
-        let cart = "";
-        for (const key in orders) {
-            if (orders[key].customerID == memberID) {
-                cart += (`
-            --------------------------------------------------
-            Order ID: ${orders[key].orderID}
-            Customer ID: ${orders[key].customerID}
-            Order Date: ${orders[key].orderDate}
-            Order Status: ${orders[key].orderStatus}
-            Products: ${orders[key].products}
-            Total Amount: ${orders[key].totalAmount}
-            Shipping Address: ${orders[key].shippingAddress}
-            --------------------------------------------------
-            `);
-            }
-        }
-        return cart;
+        const orders = await this.orderRepository.findBy( { customerID: memberID} );
+        return orders;
     }
 
     async searchOrder(orderID) {
-        const orders = await this.orderRepository.findOneBy( { orderID: orderID } );
-                    return (`
-                    --------------------------------------------------
-                    Order ID: ${orders.orderID}
-                    Customer ID: ${orders.customerID}
-                    Order Date: ${orders.orderDate}
-                    Order Status: ${orders.orderStatus}
-                    Products: ${orders.products}
-                    Total Amount: ${orders.totalAmount}
-                    Shipping Address: ${orders.shippingAddress}
-                    --------------------------------------------------
-                    `);
-
+        const order = await this.orderRepository.findOneBy( { orderID: orderID } );
+        if (order !== null) {
+            return order;
+        } else {
+            throw new NotFoundException({
+                status: HttpStatus.NOT_FOUND,
+                message: "Order not found"
+            })
+        }
     }
 
-
     async cancelOrder(orderID) {
-        return await this.orderRepository.delete( { orderID: orderID } );
+        const order = await this.orderRepository.findOneBy( { orderID: orderID } );
+        if (order !== null) {
+            await this.orderRepository.delete( { orderID: orderID } );
+            return "Delete Successful";
+        } else {
+            throw new UnauthorizedException({
+                status: HttpStatus.NOT_FOUND,
+                message: "Order not found"
+            })
+        }
     }
 
     async confirmOrder(query: confirmOrderDTO, paymentInformation: paymentInformationDTO) {
@@ -184,6 +135,34 @@ export class MemberService{
             Payment Method: ${query.paymentMethod}
             Payment Date: ${date}/${month}/${year}
         `)
+    }
+
+    async rateProduct(memberID, query:RatingDTO) {
+        query.memberID = memberID;
+        await this.ratingRepository.save(query);
+        const productID = query.productID;
+        const product = await this.productRepository.findOneBy({ productID: productID });
+        const rating = await this.ratingRepository.createQueryBuilder().select('avg(rating)').getRawOne();
+        product.ratings = rating.avg;
+        return await this.productRepository.save(product);
+    }
+
+    async reviewProduct(memberID, query:ReviewDTO) {
+        query.memberID = memberID;
+        await this.reviewRepository.save(query);
+        const productID = query.productID;
+        const product = await this.productRepository.findOneBy({ productID: productID });
+        const productReviews = await this.reviewRepository.findBy({ productID: productID });
+        product.reviews = {};
+        for (let review in productReviews) {
+            const member = await this.memberRepository.findOneBy({ memberID: productReviews[review].memberID });
+            product.reviews[member.firstName] = productReviews[review].review;
+        }
+        return await this.productRepository.save(product);
+    }
+
+    async addPlantInformation(plant: PlantDTO) {
+        return await this.plantRepository.save(plant);
     }
 
     searchPlantFertilizer(plantName: string, listOfPlantsAndTheirRequiredFertilizers: object) {
@@ -244,4 +223,40 @@ export class MemberService{
             `)
         }
     }
+
+    // Become Seller
+    async becomeSeller(memberID, seller: SellerDTO) {
+        seller.memberID = memberID;
+        return await this.sellerRepository.save(seller);
+    }
+
+    // Show Seller Details
+    async showSellerDetails(memberID) {
+        return await this.sellerRepository.findOneBy({ memberID: memberID });
+    }
+
+    // Edit Profile Details
+    async editSellerDetails(memberID, query: EditMemberDTO)
+    {
+        const sellerDetails = await this.sellerRepository.findOneBy({ memberID : memberID });
+        const editKey = query.editKey;
+        const editValue = query.editValue;
+        let validKey = false;
+        for (let key in sellerDetails) {
+            if (key == editKey) {
+                validKey = true;
+            }
+        }
+        if (!validKey) {
+            throw new NotFoundException({
+                status: HttpStatus.NOT_FOUND,
+                message: "Property not found"
+            })
+        }
+        sellerDetails[editKey] = editValue;
+        
+        return await this.sellerRepository.save(sellerDetails);
+    }
+
+
 }

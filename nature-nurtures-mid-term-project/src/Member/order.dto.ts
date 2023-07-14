@@ -3,9 +3,6 @@ import { IsNotEmpty, IsString } from "class-validator";
 export class orderDTO {
     orderID: number;
     customerID: number;
-
-    @IsNotEmpty({ message: "😓 Order date should not be empty 😓" })
-    @IsString({ message: "😓 Order date name must be a string 😓" })
     orderDate: string;
 
     @IsNotEmpty({ message: "😓 Order status name should not be empty 😓" })
@@ -14,11 +11,11 @@ export class orderDTO {
 
     @IsNotEmpty({ message: "😓 Product name should not be empty 😓" })
     @IsString({ message: "😓 Product name must be a string 😓" })
-    products: string;
+    products: string[];
 
     @IsNotEmpty({ message: "😓 Total amount should not be empty 😓" })
-    @IsString({ message: "😓 Total amount must be a string 😓" })
-    totalAmount: string;
+    @IsString({ message: "😓 Total amount must be a number 😓" })
+    totalAmount: number;
 
     @IsNotEmpty({ message: "😓 Shipping address should not be empty 😓" })
     @IsString({ message: "😓 Shipping address must be a string 😓" })

@@ -1,5 +1,8 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { OrderEntity } from "./order.entity";
+import { SellerEntity } from "src/Seller/seller.entity";
+import { RatingEntity } from "./rating.entity";
+import { ReviewEntity } from "./review.entity";
 
 @Entity('member')
 export class MemberEntity {
@@ -35,4 +38,16 @@ export class MemberEntity {
 
     @OneToMany(() => OrderEntity, order => order.member)
     orders: OrderEntity[];
+
+    @OneToOne(() => SellerEntity, seller => seller.member)
+    @JoinColumn()
+    seller: SellerEntity;
+
+    @OneToOne(() => RatingEntity, rating => rating.member)
+    @JoinColumn()
+    rating: RatingEntity;
+
+    @OneToOne(() => ReviewEntity, review => review.member)
+    @JoinColumn()
+    review: ReviewEntity;
 }
