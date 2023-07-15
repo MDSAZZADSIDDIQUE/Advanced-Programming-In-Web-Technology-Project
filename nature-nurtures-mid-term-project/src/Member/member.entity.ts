@@ -3,6 +3,7 @@ import { OrderEntity } from "./order.entity";
 import { SellerEntity } from "src/Seller/seller.entity";
 import { RatingEntity } from "./rating.entity";
 import { ReviewEntity } from "./review.entity";
+import { BlogEntity } from "./blog.entity";
 
 @Entity('member')
 export class MemberEntity {
@@ -50,4 +51,7 @@ export class MemberEntity {
     @OneToOne(() => ReviewEntity, review => review.member)
     @JoinColumn()
     review: ReviewEntity;
+
+    @OneToMany(() => BlogEntity, blog => blog.member)
+    blogs: BlogEntity[];
 }

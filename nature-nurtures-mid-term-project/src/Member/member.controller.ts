@@ -4,13 +4,15 @@ import { EditMemberDTO} from "./member.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { MulterError, diskStorage } from "multer";
 import { orderDTO } from "./order.dto";
-import { confirmOrderDTO, paymentInformationDTO } from "./payment.dto";
+import { PaymentDTO } from "./payment.dto";
 import { SessionGuard } from "./session.gaurd";
 import { AddToCartDTO} from "src/Seller/product.dto";
 import { SellerDTO } from "src/Seller/seller.dto";
 import { RatingDTO } from "./rating.dto";
 import { ReviewDTO } from "./review.dto";
-import { PlantDTO } from "./plant.dto";
+import { PlantDTO, searchPlantInformationDTO } from "./plant.dto";
+import { PlantEntity } from "./plant.entity";
+import { BlogDTO, EditBlogDTO } from "./blog.dto";
 
 @Controller('member')
 export class MemberController {
@@ -76,8 +78,8 @@ export class MemberController {
     // Confirm Order
     @Post('/confirmorder')
     @UseGuards(SessionGuard)
-    async confirmOrder(@Query() query: confirmOrderDTO, @Body() paymentInformation: paymentInformationDTO) {
-        return await this.memberService.confirmOrder(query, paymentInformation);
+    async confirmOrder(@Query() query: PaymentDTO) {
+        return await this.memberService.confirmOrder(query);
     }
 
     // Rate Product
@@ -110,17 +112,12 @@ export class MemberController {
     async addPlantInformation(@Body() plant: PlantDTO) {
         return await this.memberService.addPlantInformation(plant);
     }
-
-    @Get('/searchplantfertilizer/:plantName')
-    @UseGuards(SessionGuard)
-    searchPlantFertilizer(@Param('plantName') plantName:string, @Body() listOfPlantsAndTheirRequiredFertilizers:object): string {
-        return this.memberService.searchPlantFertilizer(plantName, listOfPlantsAndTheirRequiredFertilizers);
-    }
     
+    // Notification for water
     @Get('/notificationforwater')
     @UseGuards(SessionGuard)
-    getNotificationForWater(): string {
-        return this.memberService.getNotificationForWater();
+    async getNotificationForWater() {
+        return await this.memberService.getNotificationForWater();
     }
 
     // Become Seller
@@ -166,4 +163,41 @@ export class MemberController {
 
     //Plant Encyclopedia
     @Get('/plantencyclopedia')
+    async plantencyclopedia() {
+        return await this.memberService.plantencyclopedia();
+    }
+
+    //Search Plant
+    @Get('/searchplant/:plantName')
+    async searchPlant(@Param('plantName') plantName:string):Promise<PlantEntity> {
+        return await this.memberService.searchPlant(plantName);
+    }
+
+    // Search Plant Information
+    @Get('/searchplantinformation')
+    async searchPlantInformation(@Query() searchPlant:searchPlantInformationDTO):Promise<PlantEntity>{
+        return await this.memberService.searchPlantInformation(searchPlant);
+    }
+
+    // Publish Blog
+    @Post('/publishblog')
+    async publishBlog(@Session() session, @Body() blog:BlogDTO) {
+        return await this.memberService.publishBlog(session.memberID, blog);
+    }
+
+    // Like Blog
+    @Get('/likeblog/:blogid')
+    async likeBlog(@Param('blogid') blogID: number) {
+        return await this.memberService.likeBlog(blogID);
+    }
+    // Comment Blog
+    @Get('/commentblog')
+    async commentBlog(@Session() session, @Query() query: EditBlogDTO) {
+        return await this.memberService.commentBlog(session.memberID, query);
+    }
+    // Read BLogs
+    @Get('/readblogs')
+    async readBlogs() {
+        return await this.memberService.readBlogs();
+    }
 }

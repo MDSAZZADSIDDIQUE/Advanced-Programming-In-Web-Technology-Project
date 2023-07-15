@@ -2,8 +2,8 @@ import { IsNotEmpty, IsString } from "class-validator";
 
 export class orderDTO {
     orderID: number;
-    customerID: number;
-    orderDate: string;
+    memberID: number;
+    orderDate: Date;
 
     @IsNotEmpty({ message: "😓 Order status name should not be empty 😓" })
     @IsString({ message: "😓 Order status name must be a string 😓" })

@@ -21,3 +21,7 @@ export class PlantDTO {
     uses?: string;
   }
   
+  export class searchPlantInformationDTO {
+    name: string;
+    property: string;
+  }

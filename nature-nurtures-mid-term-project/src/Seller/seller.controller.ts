@@ -1,14 +1,15 @@
-import { Body, Controller, Post, Session, UploadedFile, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Session, UploadedFile, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from "@nestjs/common";
 import { SellerService } from "./seller.service";
 import { SessionGuard } from "src/member/session.gaurd";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { MulterError, diskStorage } from "multer";
-import { productDTO } from "./product.dto";
+import { UpdateProductDTO, productDTO } from "./product.dto";
 import { ProductEntity } from "./product.entity";
 
 @Controller('seller')
 export class SellerController {
     constructor(private readonly sellerService: SellerService) {}
+
         //Add Product
         @Post('/addproduct')
         @UseGuards(SessionGuard)
@@ -34,4 +35,25 @@ export class SellerController {
             product.picture = productPicture.filename;
             return await this.sellerService.addProduct(memberID, product);
         }
-}
+
+        // Edit Product
+        @Put('/updateproduct')
+        updateProduct(@Query() query:UpdateProductDTO) {
+            return this.sellerService.updateProduct(query);
+        }
+
+        // Delete Product
+        @Delete('/deleteproduct/:productID')
+        @UseGuards(SessionGuard)
+        async deleteProduct(@Param('productID') productID:number) {
+        return await this.sellerService.deleteProduct(productID);
+        }
+
+        // Seller Report
+        @Get('/saleReport')
+        @UseGuards(SessionGuard)
+        async saleReport(@Session() session) {
+            const memberID = session.memberID;
+            return await this.sellerService.saleReport(memberID);
+        }
+    }

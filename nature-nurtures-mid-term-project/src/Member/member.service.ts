@@ -5,7 +5,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { MemberEntity } from "./member.entity";
 import { Repository } from "typeorm";
 import { OrderEntity } from "./order.entity";
-import { confirmOrderDTO, paymentInformationDTO } from "./payment.dto";
+import { PaymentDTO } from "./payment.dto";
 import { ProductEntity } from "src/Seller/product.entity";
 import { AddToCartDTO } from "src/Seller/product.dto";
 import { SellerEntity } from "src/Seller/seller.entity";
@@ -14,8 +14,12 @@ import { RatingEntity } from "./rating.entity";
 import { RatingDTO } from "./rating.dto";
 import { ReviewEntity } from "./review.entity";
 import { ReviewDTO } from "./review.dto";
-import { PlantDTO } from "./plant.dto";
+import { PlantDTO, searchPlantInformationDTO } from "./plant.dto";
 import { PlantEntity } from "./plant.entity";
+import { MailerService } from "@nestjs-modules/mailer/dist";
+import { PaymentEntity } from "./payment.entity";
+import { format, parse } from "date-fns";
+import { BlogEntity } from "./blog.entity";
 
 @Injectable()
 export class MemberService{
@@ -34,6 +38,11 @@ export class MemberService{
         private reviewRepository: Repository<ReviewEntity>,
         @InjectRepository(PlantEntity)
         private plantRepository: Repository<PlantEntity>,
+        @InjectRepository(PaymentEntity)
+        private paymentRepository: Repository<PaymentEntity>,
+        @InjectRepository(BlogEntity)
+        private blogRepository: Repository<BlogEntity>,
+        private mailerService: MailerService
     ) {}
 
     // Show Profile Details
@@ -71,26 +80,27 @@ export class MemberService{
         return await this.productRepository.find();
     }
 
-    async addToCart(customerID, query: AddToCartDTO, order: orderDTO) {
-        const productID = query.productID;
-        const product = await this.productRepository.findOneBy({ productID: productID });
-        const member = await this.memberRepository.findOneBy(customerID);
-        order.customerID = customerID;
-        const now = new Date();
-        const date = now.getDate();
-        const month = now.getMonth();
-        const year = now.getFullYear();
-        order.orderDate = `${date}/${month}/${year}`;
+    async addToCart(memberID, query: AddToCartDTO, order: orderDTO) {
+        const productIDs = query.productID;
+        const stringProducts: string[] = productIDs.split(',');
+        const numberProducts: number[] = stringProducts.map(str => parseInt(str));
+        order.totalAmount = 0;
+        for (let productID of numberProducts) {
+            const product = await this.productRepository.findOneBy({ productID: productID });
+            order.products = [];
+            order.products.push(product.productName);
+            order.totalAmount += product.price;
+        }
+        const member = await this.memberRepository.findOneBy(memberID);
+        order.memberID = memberID;
+        order.orderDate = new Date();
         order.orderStatus = "Pending";
-        order.totalAmount = product.price;
         order.shippingAddress = member.address;
-        order.products = [];
-        order.products.push(product.productName);
         return this.orderRepository.save(order);
     }
 
     async cart(memberID) {
-        const orders = await this.orderRepository.findBy( { customerID: memberID} );
+        const orders = await this.orderRepository.findBy( { memberID: memberID} );
         return orders;
     }
 
@@ -119,22 +129,21 @@ export class MemberService{
         }
     }
 
-    async confirmOrder(query: confirmOrderDTO, paymentInformation: paymentInformationDTO) {
+    async confirmOrder(query: PaymentDTO) {
         const orderID = query.orderID;
         const order = await this.orderRepository.findOneBy( { orderID: orderID } );
+        if (order == null) {
+            throw new UnauthorizedException({
+                status: HttpStatus.NOT_FOUND,
+                message: "Order not found"
+            })
+        }
         order.orderStatus = "Shipped";
         await this.orderRepository.save(order);
-        const now = new Date();
-        const date = now.getDate();
-        const month = now.getMonth();
-        const year = now.getFullYear();
-        return (`
-            Order ID: ${orderID}
-            Amount: ${order.totalAmount}
-            Currency: ${query.currency}
-            Payment Method: ${query.paymentMethod}
-            Payment Date: ${date}/${month}/${year}
-        `)
+        await this.orderRepository.save(order);
+        query.amount = order.totalAmount;
+        query.paymentDate = new Date();
+        return this.paymentRepository.save(query);
     }
 
     async rateProduct(memberID, query:RatingDTO) {
@@ -147,6 +156,7 @@ export class MemberService{
         return await this.productRepository.save(product);
     }
 
+    // Review Product
     async reviewProduct(memberID, query:ReviewDTO) {
         query.memberID = memberID;
         await this.reviewRepository.save(query);
@@ -165,31 +175,16 @@ export class MemberService{
         return await this.plantRepository.save(plant);
     }
 
-    searchPlantFertilizer(plantName: string, listOfPlantsAndTheirRequiredFertilizers: object) {
-        for (const key in listOfPlantsAndTheirRequiredFertilizers) {
-            if (key == plantName) {
-                return (`
-                --------------------------------------------------
-                Plant Name: ${key}
-                Plant Name: ${listOfPlantsAndTheirRequiredFertilizers[key]}
-                --------------------------------------------------
-                Here are some additional tips for fertilizing your plants:
-                ⭐ Apply fertilizer when the soil is moist.
-                ⭐ Do not over-fertilize, as this can damage the plants.
-                ⭐ Water the plants thoroughly after fertilizing.
-                ⭐ Fertilize regularly, according to the instructions on the fertilizer label.
-                --------------------------------------------------
-                `);
-            }
-        }
-    }
-    getNotificationForWater(): string {
+    // Notification for Water
+    async getNotificationForWater() {
         const now = new Date();
         const hour = now.getHours();
         const minute = now.getMinutes();
         const second = now.getSeconds();
         if (hour == 9) {
-            return (`
+            await this.mailerService.sendMail({to: 'likhonsiddique01@gmail.com',
+            subject: 'Notification for Water',
+            text: (`
             -------------------
             🌄 GOOD MORNING 🌄
             -------------------
@@ -198,9 +193,12 @@ export class MemberService{
             🌱 It's time to 
             water your plants 🌱
             -------------------
-            `)
+            `),
+            });
         } else if (hour >= 12 && hour < 18) {
-            return (`
+            await this.mailerService.sendMail({to: 'likhonsiddique01@gmail.com',
+            subject: 'Notification for Water',
+            text: (`
             --------------------
             ☀️ GOOD AFTERNOON ☀️
             -------------------
@@ -209,9 +207,12 @@ export class MemberService{
             😇 Don't forget to
             drink water 😇
             --------------------
-            `)
+            `),
+            });
         } else {
-            return (`
+            await this.mailerService.sendMail({to: 'likhonsiddique01@gmail.com',
+            subject: 'Notification for Water',
+            text: (`
             -----------------
             🌙 GOOD NIGHT 🌙
             -------------------
@@ -220,7 +221,8 @@ export class MemberService{
             😇 Early to bed,
             Early to rise 😇
             -----------------
-            `)
+            `),
+            });
         }
     }
 
@@ -258,5 +260,59 @@ export class MemberService{
         return await this.sellerRepository.save(sellerDetails);
     }
 
+    // Plant Encyclopedia
+    async plantencyclopedia() {
+        return await this.plantRepository.find();
+    }
+
+    // Search Plant
+    async searchPlant(plantName):Promise<PlantEntity> {
+        const plant = await this.plantRepository.findOneBy({ name: plantName });
+        if (plant == null) {
+            throw new NotFoundException({
+                status: HttpStatus.NOT_FOUND,
+                message: "Property not found"
+            })
+        } else {
+            return plant;
+        }
+    }
+
+    // Search Plant Information
+    async searchPlantInformation(searchPlant:searchPlantInformationDTO){
+        const plant = await this.plantRepository.findOneBy({ name: searchPlant.name});
+        for (let property in plant) {
+            if (property == searchPlant.property) {
+                return plant[property];
+            }
+        }
+    }
+
+    async publishBlog(memberID, blog) {
+        blog.memberID = memberID;
+        const member = await this.memberRepository.findOneBy({ memberID: memberID})
+        blog.author = member.firstName + " " + member.lastName;
+        blog.date = new Date();
+        blog.likes = 0;
+        return await this.blogRepository.save(blog);
+    }
+
+    async likeBlog(blogID) {
+        const blog = await this.blogRepository.findOneBy({ blogID: blogID})
+        blog.likes += 1;
+        return await this.blogRepository.save(blog);
+    }
+
+    async commentBlog(memberID, query) {
+        const blog = await this.blogRepository.findOneBy({ blogID: query.blogID});
+        const member = await this.memberRepository.findOneBy({ memberID: memberID });
+        const temporaryString = blog.comments;
+        blog.comments = temporaryString + ", " + member.firstName + ": " + query.comment;
+        return await this.blogRepository.save(blog);
+    }
+
+    async readBlogs() {
+        return await this.blogRepository.find();
+    }
 
 }

@@ -5,6 +5,7 @@ import { SellerModule } from './Seller/seller.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MemberEntity } from './member/member.entity';
+import { MailerModule } from "@nestjs-modules/mailer";
 
 @Module({
   imports: [MemberModule, SellerModule, TypeOrmModule.forRoot(
@@ -16,7 +17,18 @@ import { MemberEntity } from './member/member.entity';
     database: 'nature_nurtures',
     autoLoadEntities: true,
     synchronize: true,
-    } ), TypeOrmModule.forFeature([MemberEntity])
+    } ), TypeOrmModule.forFeature([MemberEntity]),
+    MailerModule.forRoot({
+      transport: {
+      host: 'smtp.gmail.com',
+      port: 465,
+      ignoreTLS: true,
+      secure: true,
+      auth: {
+      user: 'mdsazzadsiddique0@gmail.com',
+      pass: 'nabydemkpvwfcvzc'
+      },
+      }})
     ],
   controllers: [ AppController ],
   providers: [ AppService ],

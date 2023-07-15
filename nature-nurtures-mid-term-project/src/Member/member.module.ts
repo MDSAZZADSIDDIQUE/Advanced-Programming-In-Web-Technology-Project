@@ -9,9 +9,10 @@ import { SellerEntity } from "src/Seller/seller.entity";
 import { RatingEntity } from "./rating.entity";
 import { ReviewEntity } from "./review.entity";
 import { PlantEntity } from "./plant.entity";
-
+import { PaymentEntity } from "./payment.entity";
+import { BlogEntity } from "./blog.entity";
 @Module({
-    imports: [TypeOrmModule.forFeature([MemberEntity, ProductEntity, OrderEntity, SellerEntity, RatingEntity, ReviewEntity, PlantEntity])],
+    imports: [TypeOrmModule.forFeature([MemberEntity, ProductEntity, OrderEntity, SellerEntity, RatingEntity, ReviewEntity, PlantEntity, PaymentEntity, BlogEntity])],
     controllers: [MemberController],
     providers: [MemberService],
 })

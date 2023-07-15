@@ -14,7 +14,7 @@ export class ProductEntity {
     @Column( { name: 'product_name', type: 'varchar', length: 255 } )
     productName: string;
 
-    @Column( { name: 'price', type: 'money'} )
+    @Column( { name: 'price', type: 'double precision'} )
     price: number;
 
     @Column( { name: 'description', type: 'varchar', length: 255 } )
@@ -32,7 +32,7 @@ export class ProductEntity {
     @Column( { name: 'rating', type: 'double precision', nullable: true  } )
     ratings: number;
 
-    @Column( { name: 'reviews', type: 'varchar'} )
+    @Column( { name: 'reviews', type: 'varchar', nullable: true  } )
     reviews: any;
 
     @Column( { name: 'picture', type: 'varchar', length: 255 } )

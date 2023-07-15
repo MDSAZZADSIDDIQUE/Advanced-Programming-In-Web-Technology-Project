@@ -40,6 +40,12 @@ export class productDTO {
     picture: string;
 }
 
-export class AddToCartDTO {
+export class UpdateProductDTO {
     productID: number;
+    property: string;
+    value: string;
+}
+
+export class AddToCartDTO {
+    productID: string;
 }
